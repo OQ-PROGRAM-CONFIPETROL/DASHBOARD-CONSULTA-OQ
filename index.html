@@ -170,7 +170,8 @@ function cargarFiltros(personas){
 }
 
 function renderTabla(){
-  const buscar = document.getElementById("buscar").value.toLowerCase();
+
+  const buscar = document.getElementById("buscar").value.toLowerCase().trim();
   const cargo = document.getElementById("filtroCargo").value;
   const estacion = document.getElementById("filtroEstacion").value;
   const estado = document.getElementById("filtroEstado").value;
@@ -181,57 +182,125 @@ function renderTabla(){
   tbody.innerHTML = "";
 
   const filtrados = personasGlobal.filter(p => {
-    const cursosTexto = (p.cursos || []).map(c => c.curso).join(" ").toLowerCase();
-    const texto = `${p.nombre} ${p.documento} ${p.cargo} ${p.estacion || ""} ${cursosTexto}`.toLowerCase();
 
-    const tieneCursoSeleccionado = !cursoFiltro || (p.cursos || []).some(c => c.curso === cursoFiltro);
+    const cursos = p.cursos || [];
 
-    return (!buscar || texto.includes(buscar)) &&
-           (!cargo || p.cargo === cargo) &&
-           (!estacion || p.estacion === estacion) &&
-           (!estado || p.estado === estado) &&
-           tieneCursoSeleccionado &&
-           (!tieneCursos || (tieneCursos === "CON" ? p.totalCursos > 0 : p.totalCursos === 0));
+    const cursosTexto = cursos
+      .map(c => (c.curso || "").toLowerCase())
+      .join(" ");
+
+    const textoBusqueda = `
+      ${p.nombre || ""}
+      ${p.documento || ""}
+      ${p.cargo || ""}
+      ${p.estacion || ""}
+      ${cursosTexto}
+    `.toLowerCase();
+
+    // =========================
+    // VALIDAR CURSO SELECCIONADO
+    // =========================
+    let tieneCursoSeleccionado = true;
+
+    if (cursoFiltro) {
+      tieneCursoSeleccionado = cursos.some(c =>
+        (c.curso || "").trim().toUpperCase() === cursoFiltro.trim().toUpperCase()
+      );
+    }
+
+    // =========================
+    // FILTRO CON/SIN CURSOS
+    // =========================
+    let cumpleFiltroCursos = true;
+
+    if (tieneCursos === "CON") {
+      cumpleFiltroCursos = cursos.length > 0;
+    }
+
+    if (tieneCursos === "SIN") {
+      cumpleFiltroCursos = cursos.length === 0;
+    }
+
+    // =========================
+    // FILTRO TIENE / NO TIENE CURSO
+    // =========================
+    let cumpleFiltroCursoSeleccionado = true;
+
+    if (cursoFiltro && tieneCursos === "CON") {
+      cumpleFiltroCursoSeleccionado = tieneCursoSeleccionado;
+    }
+
+    if (cursoFiltro && tieneCursos === "SIN") {
+      cumpleFiltroCursoSeleccionado = !tieneCursoSeleccionado;
+    }
+
+    return (
+      (!buscar || textoBusqueda.includes(buscar)) &&
+      (!cargo || p.cargo === cargo) &&
+      (!estacion || p.estacion === estacion) &&
+      (!estado || p.estado === estado) &&
+      cumpleFiltroCursos &&
+      cumpleFiltroCursoSeleccionado
+    );
+
   });
 
   filtrados.forEach(p => {
-    const cursosHTML = (p.cursos || []).length
-      ? p.cursos.map(c => {
-          const fecha = c.fecha ? formatearFecha(c.fecha) : "Sin fecha";
+
+    const cursos = p.cursos || [];
+
+    const cursosHTML = cursos.length
+      ? cursos.map(c => {
+
+          const fecha = c.fecha
+            ? formatearFecha(c.fecha)
+            : "Sin fecha";
+
           const cert = c.certificado
-            ? `<a href="${c.certificado}" target="_blank" rel="noopener noreferrer">Ver certificado</a>`
+            ? `<a href="${c.certificado}" target="_blank">Ver certificado</a>`
             : "Sin certificado";
 
           return `
             <div class="detalleCurso">
-              <strong>${c.curso}</strong><br>
+              <strong>${c.curso || "Sin nombre"}</strong><br>
               Fecha: ${fecha}<br>
               ${cert}
             </div>
           `;
+
         }).join("")
       : "Sin capacitaciones cargadas";
 
-    const claseEstado = p.estado === "ACTIVO" ? "ACTIVO" : "INACTIVO";
+    const estadoTexto = p.estado || "SIN ESTADO";
+
+    let claseEstado = "";
+
+    if (estadoTexto === "ACTIVO") {
+      claseEstado = "ACTIVO";
+    } else {
+      claseEstado = "INACTIVO";
+    }
 
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${p.nombre || "—"}</td>
       <td>${p.documento || "—"}</td>
       <td>${p.cargo || "—"}</td>
       <td>${p.estacion || "—"}</td>
-      <td><span class="badge ${claseEstado}">${p.estado || "—"}</span></td>
-      <td>${p.totalCursos || 0}</td>
+      <td>
+        <span class="badge ${claseEstado}">
+          ${estadoTexto}
+        </span>
+      </td>
+      <td>${cursos.length}</td>
       <td>${cursosHTML}</td>
     `;
-    tbody.appendChild(tr);
-  });
-}
 
-function formatearFecha(fecha){
-  if (!fecha) return "";
-  if (typeof fecha === "string") return fecha;
-  return fecha;
+    tbody.appendChild(tr);
+
+  });
+
 }
 
 function graficas(data){
