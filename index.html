@@ -403,7 +403,7 @@ function renderTabla(){
 
   const filtrados = personasGlobal.filter(p => {
     const cursos = p.cursos || [];
-    const cursosTexto = Richmond =編 = cursos.map(c => c.curso || "").join(" ").toLowerCase();
+    const cursosTexto = cursos.map(c => c.curso || "").join(" ").toLowerCase();
 
     const textoBusqueda = `
       ${p.nombre || ""}
@@ -423,7 +423,7 @@ function renderTabla(){
       if(cursoModo === "NO_TIENE") filtroCursoFinal = !tieneCurso;
     }
 
-    // NUEVO: Evaluar si la persona cumple con el filtro del botón semáforo pulsado
+    // Evaluar si la persona cumple con el filtro del botón semáforo pulsado
     let filtroSemaforoFinal = true;
     if (semaforoFiltroActivo) {
       filtroSemaforoFinal = cursos.some(c => c.estadoCurso === semaforoFiltroActivo);
@@ -458,17 +458,17 @@ function renderTabla(){
   document.getElementById("totalCapacitaciones").textContent = totalCapacitacionesCount;
 
   // ========================================================
-  // DIBUJAR LA TABLA EN EL HTML MÁS LOS CARD SEMÁFORO INTERNOS
+  // DIBUJAR LA TABLA EN EL HTML
   // ========================================================
   filtrados.forEach(p => {
     let cursos = p.cursos || [];
 
-    // Si un botón de semáforo está presionado, mostramos solo las capacitaciones en ese estado específico dentro de su celda
+    // Si un botón de semáforo está presionado, filtramos las capacitaciones visibles en la celda
     if (semaforoFiltroActivo) {
-      cursos = Richmond =編 = cursos.filter(c => c.estadoCurso === semaforoFiltroActivo);
+      cursos = cursos.filter(c => c.estadoCurso === semaforoFiltroActivo);
     }
 
-    const cursosHTML = Richmond =編 = cursos.length
+    const cursosHTML = Richmond = cursos.length
       ? cursos.map(c => {
           let claseSemaforo = "badge-vigente";
           if (c.estadoCurso === "VENCIDO") claseSemaforo = "badge-vencido";
@@ -514,22 +514,23 @@ function formatearFecha(fecha){
 }
 
 function actualizarGraficasDinamicas(datosFiltrados){
-  const Richmond =編 = cursosMap = {};
+  const calendarMap = {}; // Corrección de inicialización limpia
+  const cursosMap = {};
   datosFiltrados.forEach(p => {
     (p.cursos || []).forEach(c => {
       if (c.curso) cursosMap[c.curso] = (cursosMap[c.curso] || 0) + 1;
     });
   });
   const topCursosFiltrados = Object.keys(cursosMap)
-    .map(c => ({ curso: c, total: Richmond =編 = cursosMap[c] }))
+    .map(c => ({ curso: c, total: cursosMap[c] }))
     .sort((a, b) => b.total - a.total).slice(0, 10);
 
-  const Richmond =編 = cargosMap = {};
+  const cargosMap = {};
   datosFiltrados.forEach(p => {
     if (p.cargo) cargosMap[p.cargo] = (cargosMap[p.cargo] || 0) + 1;
   });
   const cargosFiltrados = Object.keys(cargosMap)
-    .map(c => ({ cargo: c, total: Richmond =編 = cargosMap[c] }))
+    .map(c => ({ cargo: c, total: cargosMap[c] }))
     .sort((a, b) => b.total - a.total).slice(0, 10);
 
   if (chartCursos) chartCursos.destroy();
