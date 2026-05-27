@@ -41,7 +41,7 @@ h1{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:15px;
-  margin-bottom:25px;
+  margin-bottom:20px;
 }
 
 .card{
@@ -51,6 +51,20 @@ h1{
   padding:18px;
   text-align:center;
   box-shadow:0 8px 18px rgba(0,0,0,.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Estilos interactivos para los botones del semáforo */
+.btn-semaforo {
+  cursor: pointer;
+}
+.btn-semaforo:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 22px rgba(0,0,0,0.35);
+}
+.btn-semaforo.active {
+  outline: 3px solid #fff;
+  box-shadow: 0 0 15px rgba(255,255,255,0.6);
 }
 
 .card h2{
@@ -63,6 +77,11 @@ h1{
   font-weight:bold;
   margin-top:10px;
 }
+
+/* Variaciones de color para los botones semáforo */
+.card-vencido { border-bottom: 6px solid #d93025; background: #fdf2f2; }
+.card-proximo { border-bottom: 6px solid #f9ab00; background: #fef7e0; }
+.card-vigente { border-bottom: 6px solid #137333; background: #e6f4ea; }
 
 .grid{
   display:grid;
@@ -80,7 +99,7 @@ h1{
 
 .filters{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
   gap:12px;
   margin-bottom:15px;
 }
@@ -118,24 +137,28 @@ th{
   border-radius:8px;
   font-weight:bold;
   display:inline-block;
+  font-size: 11px;
 }
 
-.ACTIVO{
-  background:#c8f7c5;
-  color:#000;
-}
+.ACTIVO{ background:#c8f7c5; color:#000; }
+.INACTIVO{ background:#ffc7c7; color:#000; }
 
-.INACTIVO{
-  background:#ffc7c7;
-  color:#000;
-}
+/* Badges del semáforo para el listado de cursos */
+.badge-vencido { background: #fce8e6; color: #a51d24; border: 1px solid #fad2cf; }
+.badge-proximo { background: #fef7e0; color: #b06000; border: 1px solid #feebd0; }
+.badge-vigente { background: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
 
 .detalleCurso{
   background:#f4f7fb;
   padding:8px;
   border-radius:8px;
   margin:5px 0;
+  border-left: 4px solid #b6c1d4;
 }
+
+.detalleCurso.VENCIDO { border-left-color: #d93025; }
+.detalleCurso.PROXIMO { border-left-color: #f9ab00; }
+.detalleCurso.VIGENTE { border-left-color: #137333; }
 
 .detalleCurso a{
   font-weight:bold;
@@ -151,25 +174,29 @@ canvas{
   max-height:420px;
 }
 
+.titulo-filtro-contenedor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.btn-limpiar-filtro {
+  background: #d93025;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
 @media(max-width:900px){
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-  body{
-    padding:10px;
-  }
-
-  th,td{
-    font-size:11px;
-    padding:6px;
-  }
-
-  .valor{
-    font-size:26px;
-  }
-
+  .grid{ grid-template-columns:1fr; }
+  body{ padding:10px; }
+  th,td{ font-size:11px; padding:6px; }
+  .valor{ font-size:26px; }
 }
 
 </style>
@@ -184,84 +211,76 @@ canvas{
 <h1>DASHBOARD CONSULTA OQ</h1>
 
 <div class="cards">
-
   <div class="card">
     <h2>Total personas</h2>
     <div class="valor" id="totalPersonas">0</div>
   </div>
-
   <div class="card">
     <h2>Con cursos</h2>
     <div class="valor" id="personasConCursos">0</div>
   </div>
-
   <div class="card">
     <h2>Sin cursos</h2>
     <div class="valor" id="personasSinCursos">0</div>
   </div>
-
   <div class="card">
     <h2>Total capacitaciones</h2>
     <div class="valor" id="totalCapacitaciones">0</div>
   </div>
+</div>
 
+<div class="cards">
+  <div class="card btn-semaforo card-vencido" id="btnVencidos" onclick="alternarFiltroSemaforo('VENCIDO')">
+    <h2>Capacitaciones Vencidas 🔴</h2>
+    <div class="valor" id="kpiVencidos" style="color: #d93025;">0</div>
+  </div>
+  <div class="card btn-semaforo card-proximo" id="btnProximos" onclick="alternarFiltroSemaforo('PROXIMO')">
+    <h2>Próximas a Vencer (30 días) 🟡</h2>
+    <div class="valor" id="kpiProximos" style="color: #b06000;">0</div>
+  </div>
+  <div class="card btn-semaforo card-vigente" id="btnVigentes" onclick="alternarFiltroSemaforo('VIGENTE')">
+    <h2>Capacitaciones Vigentes 🟢</h2>
+    <div class="valor" id="kpiVigentes" style="color: #137333;">0</div>
+  </div>
 </div>
 
 <div class="grid">
-
   <div class="box">
     <h3>Top 10 cursos más cargados</h3>
     <canvas id="graficaCursos"></canvas>
   </div>
-
   <div class="box">
     <h3>Personas por cargo</h3>
     <canvas id="graficaCargos"></canvas>
   </div>
-
 </div>
 
 <div class="box">
-
-  <h3>Consulta de personal y capacitaciones</h3>
+  <div class="titulo-filtro-contenedor">
+    <h3 style="margin: 0;">Consulta de personal y capacitaciones</h3>
+    <button id="btnLimpiarSemaforo" class="btn-limpiar-filtro" style="display: none;" onclick="limpiarFiltroSemaforo()">
+      Quitar Filtro Semáforo ❌
+    </button>
+  </div>
 
   <div class="filters">
-
-    <input
-      id="buscar"
-      placeholder="Buscar persona, documento, cargo o curso..."
-      oninput="renderTabla()"
-    >
-
-    <select id="filtroCargo" onchange="renderTabla()">
-      <option value="">Todos los cargos</option>
-    </select>
-
-    <select id="filtroEstacion" onchange="renderTabla()">
-      <option value="">Todas las estaciones</option>
-    </select>
-
+    <input id="buscar" placeholder="Buscar persona, documento, cargo o curso..." oninput="renderTabla()">
+    <select id="filtroCargo" onchange="renderTabla()"><option value="">Todos los cargos</option></select>
+    <select id="filtroEstacion" onchange="renderTabla()"><option value="">Todas las estaciones</option></select>
     <select id="filtroEstado" onchange="renderTabla()">
       <option value="">Todos los estados</option>
       <option value="ACTIVO">ACTIVO</option>
       <option value="INACTIVO">INACTIVO</option>
     </select>
-
-    <select id="filtroCurso" onchange="renderTabla()">
-      <option value="">Todos los cursos</option>
-    </select>
-
+    <select id="filtroCurso" onchange="renderTabla()"><option value="">Todos los cursos</option></select>
     <select id="filtroCursoModo" onchange="renderTabla()">
       <option value="TIENE">Tiene curso seleccionado</option>
       <option value="NO_TIENE">No tiene curso seleccionado</option>
     </select>
-
   </div>
 
   <div class="tableWrap">
-
     <table>
-
       <thead>
         <tr>
           <th>Nombre</th>
@@ -273,13 +292,9 @@ canvas{
           <th>Capacitaciones / certificados</th>
         </tr>
       </thead>
-
       <tbody id="tabla"></tbody>
-
     </table>
-
   </div>
-
 </div>
 
 <script>
@@ -287,147 +302,108 @@ canvas{
 const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
 
 let personasGlobal = [];
-// Variables globales para almacenar y destruir las instancias de las gráficas
+let semaforoFiltroActivo = null; // Almacena si está filtrando por 'VENCIDO', 'PROXIMO' o 'VIGENTE'
 let chartCursos = null;
 let chartCargos = null;
 
 async function cargarDashboard(){
-
   try{
-
     console.log("Cargando dashboard...");
-
     const response = await fetch(API + "?dashboardConsulta=oq");
-
     const texto = await response.text();
-
     console.log(texto);
-
     const data = JSON.parse(texto);
 
     personasGlobal = data.personas || [];
 
+    // Capturar y actualizar los KPIs de tus nuevos botones desde la respuesta integrada del backend
+    if(data.botonesKpi) {
+      document.getElementById("kpiVencidos").textContent = data.botonesKpi.vencidos || 0;
+      document.getElementById("kpiProximos").textContent = data.botonesKpi.proximos || 0;
+      document.getElementById("kpiVigentes").textContent = data.botonesKpi.vigentes || 0;
+    }
+
     cargarFiltros(personasGlobal);
-
-    // Ejecutamos renderTabla que a su vez actualizará las tarjetas e inicializará los gráficos
     renderTabla();
-
   }
   catch(error){
-
     console.error(error);
-
     alert("ERROR CARGANDO INFORMACIÓN");
-
   }
-
 }
 
 function cargarFiltros(personas){
+  const cargos = [...new Set(personas.map(p => p.cargo).filter(Boolean))].sort();
+  const estaciones = [...new Set(personas.map(p => p.estacion).filter(Boolean))].sort();
+  const cursos = [...new Set(personas.flatMap(p => (p.cursos || []).map(c => c.curso)).filter(Boolean))].sort();
 
-  const cargos = [
-    ...new Set(
-      personas.map(p => p.cargo).filter(Boolean)
-    )
-  ].sort();
-
-  const estaciones = [
-    ...new Set(
-      personas.map(p => p.estacion).filter(Boolean)
-    )
-  ].sort();
-
-  const cursos = [
-    ...new Set(
-      personas.flatMap(p =>
-        (p.cursos || []).map(c => c.curso)
-      ).filter(Boolean)
-    )
-  ].sort();
-
-  const filtroCargo =
-    document.getElementById("filtroCargo");
-
+  const filtroCargo = document.getElementById("filtroCargo");
   cargos.forEach(c => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = c;
-    option.textContent = c;
-
+    const option = document.createElement("option");
+    option.value = c; option.textContent = c;
     filtroCargo.appendChild(option);
-
   });
 
-  const filtroEstacion =
-    document.getElementById("filtroEstacion");
-
+  const filtroEstacion = document.getElementById("filtroEstacion");
   estaciones.forEach(e => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = e;
-    option.textContent = e;
-
+    const option = document.createElement("option");
+    option.value = e; option.textContent = e;
     filtroEstacion.appendChild(option);
-
   });
 
-  const filtroCurso =
-    document.getElementById("filtroCurso");
-
+  const filtroCurso = document.getElementById("filtroCurso");
   cursos.forEach(c => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = c;
-    option.textContent = c;
-
+    const option = document.createElement("option");
+    option.value = c; option.textContent = c;
     filtroCurso.appendChild(option);
-
   });
+}
 
+// Función interactiva de los botones para alternar el filtro del semáforo
+function alternarFiltroSemaforo(estadoSemaforo) {
+  // Quitar el estilo activo de todos los botones
+  document.getElementById("btnVencidos").classList.remove("active");
+  document.getElementById("btnProximos").classList.remove("active");
+  document.getElementById("btnVigentes").classList.remove("active");
+
+  if (semaforoFiltroActivo === estadoSemaforo) {
+    // Si vuelve a hacer clic en el mismo activo, se apaga el filtro
+    semaforoFiltroActivo = null;
+    document.getElementById("btnLimpiarSemaforo").style.display = "none";
+  } else {
+    // Activar el nuevo filtro seleccionado
+    semaforoFiltroActivo = estadoSemaforo;
+    document.getElementById("btnLimpiarSemaforo").style.display = "inline-block";
+    if(estadoSemaforo === 'VENCIDO') document.getElementById("btnVencidos").classList.add("active");
+    if(estadoSemaforo === 'PROXIMO') document.getElementById("btnProximos").classList.add("active");
+    if(estadoSemaforo === 'VIGENTE') document.getElementById("btnVigentes").classList.add("active");
+  }
+  renderTabla();
+}
+
+function limpiarFiltroSemaforo() {
+  semaforoFiltroActivo = null;
+  document.getElementById("btnVencidos").classList.remove("active");
+  document.getElementById("btnProximos").classList.remove("active");
+  document.getElementById("btnVigentes").classList.remove("active");
+  document.getElementById("btnLimpiarSemaforo").style.display = "none";
+  renderTabla();
 }
 
 function renderTabla(){
-
-  const buscar =
-    document.getElementById("buscar")
-    .value
-    .toLowerCase()
-    .trim();
-
-  const cargo =
-    document.getElementById("filtroCargo").value;
-
-  const estacion =
-    document.getElementById("filtroEstacion").value;
-
-  const estado =
-    document.getElementById("filtroEstado").value;
-
-  const cursoFiltro =
-    document.getElementById("filtroCurso").value;
-
-  const cursoModo =
-    document.getElementById("filtroCursoModo").value;
-
-  const tbody =
-    document.getElementById("tabla");
+  const buscar = document.getElementById("buscar").value.toLowerCase().trim();
+  const cargo = document.getElementById("filtroCargo").value;
+  const estacion = document.getElementById("filtroEstacion").value;
+  const estado = document.getElementById("filtroEstado").value;
+  const cursoFiltro = document.getElementById("filtroCurso").value;
+  const cursoModo = document.getElementById("filtroCursoModo").value;
+  const tbody = document.getElementById("tabla");
 
   tbody.innerHTML = "";
 
   const filtrados = personasGlobal.filter(p => {
-
     const cursos = p.cursos || [];
-
-    const cursosTexto =
-      cursos.map(c => c.curso || "")
-      .join(" ")
-      .toLowerCase();
+    const cursosTexto = Richmond =編 = cursos.map(c => c.curso || "").join(" ").toLowerCase();
 
     const textoBusqueda = `
       ${p.nombre || ""}
@@ -437,38 +413,30 @@ function renderTabla(){
       ${cursosTexto}
     `.toLowerCase();
 
-  const tieneCurso =
-      cursoFiltro
-        ? cursos.some(c =>
-            (c.curso || "").trim().toUpperCase() ===
-            cursoFiltro.trim().toUpperCase()
-          )
-        : true;
+    const tieneCurso = cursoFiltro
+      ? cursos.some(c => (c.curso || "").trim().toUpperCase() === cursoFiltro.trim().toUpperCase())
+      : true;
 
     let filtroCursoFinal = true;
-
     if(cursoFiltro){
-
-      if(cursoModo === "TIENE"){
-        filtroCursoFinal = tieneCurso;
-      }
-
-      if(cursoModo === "NO_TIENE"){
-        filtroCursoFinal = !tieneCurso;
-      }
-
+      if(cursoModo === "TIENE") filtroCursoFinal = tieneCurso;
+      if(cursoModo === "NO_TIENE") filtroCursoFinal = !tieneCurso;
     }
 
-    return(
+    // NUEVO: Evaluar si la persona cumple con el filtro del botón semáforo pulsado
+    let filtroSemaforoFinal = true;
+    if (semaforoFiltroActivo) {
+      filtroSemaforoFinal = cursos.some(c => c.estadoCurso === semaforoFiltroActivo);
+    }
 
+    return (
       (!buscar || textoBusqueda.includes(buscar)) &&
       (!cargo || p.cargo === cargo) &&
       (!estacion || p.estacion === estacion) &&
       (!estado || p.estado === estado) &&
-      filtroCursoFinal
-
+      filtroCursoFinal &&
+      filtroSemaforoFinal
     );
-
   });
 
   // ========================================================
@@ -481,11 +449,7 @@ function renderTabla(){
   filtrados.forEach(p => {
     const totalCursos = (p.cursos || []).length;
     totalCapacitacionesCount += totalCursos;
-    if (totalCursos > 0) {
-      conCursosCount++;
-    } else {
-      sinCursosCount++;
-    }
+    if (totalCursos > 0) conCursosCount++; else sinCursosCount++;
   });
 
   document.getElementById("totalPersonas").textContent = filtrados.length;
@@ -494,192 +458,119 @@ function renderTabla(){
   document.getElementById("totalCapacitaciones").textContent = totalCapacitacionesCount;
 
   // ========================================================
-  // DIBUJAR LA TABLA EN EL HTML
+  // DIBUJAR LA TABLA EN EL HTML MÁS LOS CARD SEMÁFORO INTERNOS
   // ========================================================
   filtrados.forEach(p => {
+    let cursos = p.cursos || [];
 
-    const cursos = p.cursos || [];
+    // Si un botón de semáforo está presionado, mostramos solo las capacitaciones en ese estado específico dentro de su celda
+    if (semaforoFiltroActivo) {
+      cursos = Richmond =編 = cursos.filter(c => c.estadoCurso === semaforoFiltroActivo);
+    }
 
-    const cursosHTML = cursos.length
-
+    const cursosHTML = Richmond =編 = cursos.length
       ? cursos.map(c => {
+          let claseSemaforo = "badge-vigente";
+          if (c.estadoCurso === "VENCIDO") claseSemaforo = "badge-vencido";
+          if (c.estadoCurso === "PROXIMO") claseSemaforo = "badge-proximo";
 
           return `
-            <div class="detalleCurso">
-
-              <strong>${c.curso || "Sin nombre"}</strong><br>
-
-              Fecha:
-              ${formatearFecha(c.fecha)}<br>
-
+            <div class="detalleCurso ${c.estadoCurso || ''}">
+              <strong>${c.curso || "Sin nombre"}</strong> 
+              <span class="badge ${claseSemaforo}">${c.estadoCurso || 'VIGENTE'}</span><br>
+              Fecha Registro: ${formatearFecha(c.fecha)}<br>
+              Vencimiento: ${c.vencimiento || "Sin registrar"}<br>
               ${
                 c.certificado
                 ? `<a href="${c.certificado}" target="_blank">Ver certificado</a>`
                 : "Sin certificado"
               }
-
             </div>
           `;
-
         }).join("")
-
       : "Sin capacitaciones";
 
-    const estadoTexto =
-      p.estado || "SIN ESTADO";
+    const estadoTexto = p.estado || "SIN ESTADO";
+    const claseEstado = estadoTexto === "ACTIVO" ? "ACTIVO" : "INACTIVO";
 
-    const claseEstado =
-      estadoTexto === "ACTIVO"
-      ? "ACTIVO"
-      : "INACTIVO";
-
-    const tr =
-      document.createElement("tr");
-
+    const tr = document.createElement("tr");
     tr.innerHTML = `
-
-      <td>${p.nombre || "—"}</td>
-
+      <td><strong>${p.nombre || "—"}</strong></td>
       <td>${p.documento || "—"}</td>
-
       <td>${p.cargo || "—"}</td>
-
       <td>${p.estacion || "—"}</td>
-
-      <td>
-        <span class="badge ${claseEstado}">
-          ${estadoTexto}
-        </span>
-      </td>
-
-      <td>${cursos.length}</td>
-
+      <td><span class="badge ${claseEstado}">${estadoTexto}</span></td>
+      <td>${p.cursos ? p.cursos.length : 0}</td>
       <td>${cursosHTML}</td>
-
     `;
-
     tbody.appendChild(tr);
-
   });
 
-  // Actualizar las métricas de las gráficas según la información filtrada
   actualizarGraficasDinamicas(filtrados);
 }
 
 function formatearFecha(fecha){
-
-  if(!fecha){
-    return "Sin fecha";
-  }
-
-  return fecha;
-
+  return !fecha ? "Sin fecha" : fecha;
 }
 
 function actualizarGraficasDinamicas(datosFiltrados){
-
-  // 1. Procesar datos para cursos filtrados
-  const cursosMap = {};
+  const Richmond =編 = cursosMap = {};
   datosFiltrados.forEach(p => {
     (p.cursos || []).forEach(c => {
-      if (c.curso) {
-        cursosMap[c.curso] = (cursosMap[c.curso] || 0) + 1;
-      }
+      if (c.curso) cursosMap[c.curso] = (cursosMap[c.curso] || 0) + 1;
     });
   });
   const topCursosFiltrados = Object.keys(cursosMap)
-    .map(c => ({ curso: c, total: cursosMap[c] }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
+    .map(c => ({ curso: c, total: Richmond =編 = cursosMap[c] }))
+    .sort((a, b) => b.total - a.total).slice(0, 10);
 
-  // 2. Procesar datos para cargos filtrados
-  const cargosMap = {};
+  const Richmond =編 = cargosMap = {};
   datosFiltrados.forEach(p => {
-    if (p.cargo) {
-      cargosMap[p.cargo] = (cargosMap[p.cargo] || 0) + 1;
-    }
+    if (p.cargo) cargosMap[p.cargo] = (cargosMap[p.cargo] || 0) + 1;
   });
   const cargosFiltrados = Object.keys(cargosMap)
-    .map(c => ({ cargo: c, total: cargosMap[c] }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
+    .map(c => ({ cargo: c, total: Richmond =編 = cargosMap[c] }))
+    .sort((a, b) => b.total - a.total).slice(0, 10);
 
-  // ==========================================
-  // GRÁFICA 1: TOP CURSOS
-  // ==========================================
-  if (chartCursos) {
-    chartCursos.destroy(); // Destruye la gráfica anterior si existe
-  }
+  if (chartCursos) chartCursos.destroy();
+  chartCursos = new Chart(document.getElementById("graficaCursos"), {
+    type:"bar",
+    data:{
+      labels: topCursosFiltrados.map(x => cortarTexto(x.curso,25)),
+      datasets:[{
+        label:"Cantidad",
+        data: topCursosFiltrados.map(x => x.total),
+        backgroundColor: '#0b2340',
+        borderColor: '#08172b',
+        borderWidth: 1
+      }]
+    },
+    options:{ indexAxis:"y", responsive:true, plugins:{ legend:{display:false} } }
+  });
 
-  chartCursos = new Chart(
-    document.getElementById("graficaCursos"),
-    {
-      type:"bar",
-      data:{
-        labels: topCursosFiltrados.map(x => cortarTexto(x.curso,25)),
-        datasets:[{
-          label:"Cantidad",
-          data: topCursosFiltrados.map(x => x.total),
-          backgroundColor: '#0b2340',
-          borderColor: '#08172b',
-          borderWidth: 1
-        }]
-      },
-      options:{
-        indexAxis:"y",
-        responsive:true,
-        plugins:{
-          legend:{display:false}
-        }
-      }
-    }
-  );
-
-  // ==========================================
-  // GRÁFICA 2: PERSONAS POR CARGO
-  // ==========================================
-  if (chartCargos) {
-    chartCargos.destroy(); // Destruye la gráfica anterior si existe
-  }
-
-  chartCargos = new Chart(
-    document.getElementById("graficaCargos"),
-    {
-      type:"bar",
-      data:{
-        labels: cargosFiltrados.map(x => cortarTexto(x.cargo,22)),
-        datasets:[{
-          label:"Personas",
-          data: cargosFiltrados.map(x => x.total),
-          backgroundColor: '#f29100', // Un tono naranja/amarillo complementario
-          borderColor: '#c67700',
-          borderWidth: 1
-        }]
-      },
-      options:{
-        indexAxis:"y",
-        responsive:true,
-        plugins:{
-          legend:{display:false}
-        }
-      }
-    }
-  );
-
+  if (chartCargos) chartCargos.destroy();
+  chartCargos = new Chart(document.getElementById("graficaCargos"), {
+    type:"bar",
+    data:{
+      labels: cargosFiltrados.map(x => cortarTexto(x.cargo,22)),
+      datasets:[{
+        label:"Personas",
+        data: cargosFiltrados.map(x => x.total),
+        backgroundColor: '#f29100',
+        borderColor: '#c67700',
+        borderWidth: 1
+      }]
+    },
+    options:{ indexAxis:"y", responsive:true, plugins:{ legend:{display:false} } }
+  });
 }
 
 function cortarTexto(txt,max){
-
-  return txt && txt.length > max
-    ? txt.substring(0,max) + "..."
-    : txt;
-
+  return txt && txt.length > max ? txt.substring(0,max) + "..." : txt;
 }
 
-// Inicialización de la carga de datos
 cargarDashboard();
 
 </script>
-
 </body>
 </html>
