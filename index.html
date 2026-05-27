@@ -302,7 +302,7 @@ canvas{
 const API = "https://script.google.com/macros/s/AKfycbxbzO1J8Dl0v4_NZ624FL9U7i4uIZzFhztAft7eyOWyQoGdR59VCxlpjUwrmgbIkZcKYA/exec";
 
 let personasGlobal = [];
-let semaforoFiltroActivo = null; // Almacena si está filtrando por 'VENCIDO', 'PROXIMO' o 'VIGENTE'
+let semaforoFiltroActivo = null; 
 let chartCursos = null;
 let chartCargos = null;
 
@@ -316,15 +316,8 @@ async function cargarDashboard(){
 
     personasGlobal = data.personas || [];
 
-    // Capturar y actualizar los KPIs de tus nuevos botones desde la respuesta integrada del backend
-    if(data.botonesKpi) {
-      document.getElementById("kpiVencidos").textContent = data.botonesKpi.vencidos || 0;
-      document.getElementById("kpiProximos").textContent = data.botonesKpi.proximos || 0;
-      document.getElementById("kpiVigentes").textContent = data.botonesKpi.vigentes || 0;
-    }
-
     cargarFiltros(personasGlobal);
-    renderTabla();
+    renderTabla(); // renderTabla se encargará de calcular inicialmente y de forma reactiva los contadores
   }
   catch(error){
     console.error(error);
@@ -359,19 +352,15 @@ function cargarFiltros(personas){
   });
 }
 
-// Función interactiva de los botones para alternar el filtro del semáforo
 function alternarFiltroSemaforo(estadoSemaforo) {
-  // Quitar el estilo activo de todos los botones
   document.getElementById("btnVencidos").classList.remove("active");
   document.getElementById("btnProximos").classList.remove("active");
   document.getElementById("btnVigentes").classList.remove("active");
 
   if (semaforoFiltroActivo === estadoSemaforo) {
-    // Si vuelve a hacer clic en el mismo activo, se apaga el filtro
     semaforoFiltroActivo = null;
     document.getElementById("btnLimpiarSemaforo").style.display = "none";
   } else {
-    // Activar el nuevo filtro seleccionado
     semaforoFiltroActivo = estadoSemaforo;
     document.getElementById("btnLimpiarSemaforo").style.display = "inline-block";
     if(estadoSemaforo === 'VENCIDO') document.getElementById("btnVencidos").classList.add("active");
@@ -401,6 +390,7 @@ function renderTabla(){
 
   tbody.innerHTML = "";
 
+  // 1. PRIMER FILTRADO: Filtrar personas según selectores principales de arriba
   const filtrados = personasGlobal.filter(p => {
     const cursos = p.cursos || [];
     const cursosTexto = cursos.map(c => c.curso || "").join(" ").toLowerCase();
@@ -423,36 +413,55 @@ function renderTabla(){
       if(cursoModo === "NO_TIENE") filtroCursoFinal = !tieneCurso;
     }
 
-    // Evaluar si la persona cumple con el filtro del botón semáforo pulsado
-    let filtroSemaforoFinal = true;
-    if (semaforoFiltroActivo) {
-      filtroSemaforoFinal = cursos.some(c => c.estadoCurso === semaforoFiltroActivo);
-    }
-
     return (
       (!buscar || textoBusqueda.includes(buscar)) &&
       (!cargo || p.cargo === cargo) &&
       (!estacion || p.estacion === estacion) &&
       (!estado || p.estado === estado) &&
-      filtroCursoFinal &&
-      filtroSemaforoFinal
+      filtroCursoFinal
     );
   });
 
+  // ======================================================================
+  // ¡RECALCULAR CONTADORES DE SEMÁFORO EN TIEMPO REAL BASADO EN FILTROS!
+  // ======================================================================
+  let dinamicoVencidos = 0;
+  let dinamicoProximos = 0;
+  let dinamicoVigentes = 0;
+
+  filtrados.forEach(p => {
+    (p.cursos || []).forEach(c => {
+      if (c.estadoCurso === "VENCIDO") dinamicoVencidos++;
+      if (c.estadoCurso === "PROXIMO") dinamicoProximos++;
+      if (c.estadoCurso === "VIGENTE") dinamicoVigentes++;
+    });
+  });
+
+  // Pintar los nuevos totales de alerta dinámicamente
+  document.getElementById("kpiVencidos").textContent = dinamicoVencidos;
+  document.getElementById("kpiProximos").textContent = dinamicoProximos;
+  document.getElementById("kpiVigentes").textContent = dinamicoVigentes;
+
+  // 2. SEGUNDO FILTRADO: Si el usuario oprimió un botón semáforo, acotamos la lista final para la tabla
+  const personasFinalesParaTabla = filtrados.filter(p => {
+    if (!semaforoFiltroActivo) return true;
+    return (p.cursos || []).some(c => c.estadoCurso === semaforoFiltroActivo);
+  });
+
   // ========================================================
-  // RECALCULAR CONTADORES DE TARJETAS BASADO EN FILTRADOS
+  // RECALCULAR CONTADORES DE TARJETAS GENERALES DE ARRIBA
   // ========================================================
   let conCursosCount = 0;
   let sinCursosCount = 0;
   let totalCapacitacionesCount = 0;
 
-  filtrados.forEach(p => {
+  personasFinalesParaTabla.forEach(p => {
     const totalCursos = (p.cursos || []).length;
     totalCapacitacionesCount += totalCursos;
     if (totalCursos > 0) conCursosCount++; else sinCursosCount++;
   });
 
-  document.getElementById("totalPersonas").textContent = filtrados.length;
+  document.getElementById("totalPersonas").textContent = personasFinalesParaTabla.length;
   document.getElementById("personasConCursos").textContent = conCursosCount;
   document.getElementById("personasSinCursos").textContent = sinCursosCount;
   document.getElementById("totalCapacitaciones").textContent = totalCapacitacionesCount;
@@ -460,15 +469,15 @@ function renderTabla(){
   // ========================================================
   // DIBUJAR LA TABLA EN EL HTML
   // ========================================================
-  filtrados.forEach(p => {
+  personasFinalesParaTabla.forEach(p => {
     let cursos = p.cursos || [];
 
-    // Si un botón de semáforo está presionado, filtramos las capacitaciones visibles en la celda
+    // Si el botón semáforo está activo, mostrar solo las capacitaciones de ese color en la celda
     if (semaforoFiltroActivo) {
       cursos = cursos.filter(c => c.estadoCurso === semaforoFiltroActivo);
     }
 
-    const cursosHTML = Richmond = cursos.length
+    const cursosHTML = cursos.length
       ? cursos.map(c => {
           let claseSemaforo = "badge-vigente";
           if (c.estadoCurso === "VENCIDO") claseSemaforo = "badge-vencido";
@@ -506,7 +515,8 @@ function renderTabla(){
     tbody.appendChild(tr);
   });
 
-  actualizarGraficasDinamicas(filtrados);
+  // Forzar a las dos gráficas de barras a responder de inmediato al filtro actual
+  actualizarGraficasDinamicas(personasFinalesParaTabla);
 }
 
 function formatearFecha(fecha){
@@ -514,7 +524,6 @@ function formatearFecha(fecha){
 }
 
 function actualizarGraficasDinamicas(datosFiltrados){
-  const calendarMap = {}; // Corrección de inicialización limpia
   const cursosMap = {};
   datosFiltrados.forEach(p => {
     (p.cursos || []).forEach(c => {
